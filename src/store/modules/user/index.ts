@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import type { UserInfo, UserState } from './helper'
 import { defaultSetting, getLocalState, setLocalState } from './helper'
-import { fetchUserInfo } from '@/api'
+import { fetchUserInfo, updatePwd, userLogin, userRegister } from '@/api'
 
 export const useUserStore = defineStore('user-store', {
   state: (): UserState => getLocalState(),
@@ -31,6 +31,21 @@ export const useUserStore = defineStore('user-store', {
 
     recordState() {
       setLocalState(this.$state)
+    },
+
+    async login(params: any) {
+      const res = await userLogin<any>(params)
+      return res
+    },
+
+    async register(params: any) {
+      const res = await userRegister<any>(params)
+      return res
+    },
+
+    async updatePwd(params: any) {
+      const res = await updatePwd<any>(params)
+      return res
     },
   },
 })

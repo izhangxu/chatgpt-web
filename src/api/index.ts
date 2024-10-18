@@ -51,3 +51,24 @@ export function fetchVerify<T>(token: string) {
     data: { token },
   })
 }
+
+export function userLogin<T>(data: any) {
+  return post<T>({
+    url: '/user/login',
+    data,
+  })
+}
+
+export function userRegister<T>(data: any) {
+  return post<T>({
+    url: '/user/register',
+    data,
+  })
+}
+
+export function updatePwd<T>(data: any) {
+  return post<T>({
+    url: '/user/passwd',
+    data,
+  })
+}

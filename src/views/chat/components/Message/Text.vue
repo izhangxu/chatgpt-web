@@ -5,7 +5,6 @@ import MdKatex from '@vscode/markdown-it-katex'
 import MdLinkAttributes from 'markdown-it-link-attributes'
 import MdMermaid from 'mermaid-it-markdown'
 import hljs from 'highlight.js'
-import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { t } from '@/locales'
 import { copyToClip } from '@/utils/copy'
 
@@ -18,8 +17,6 @@ interface Props {
 }
 
 const props = defineProps<Props>()
-
-const { isMobile } = useBasicLayout()
 
 const textRef = ref<HTMLElement>()
 
@@ -43,7 +40,7 @@ const wrapClass = computed(() => {
     'text-wrap',
     'min-w-[20px]',
     'rounded-md',
-    isMobile.value ? 'p-2' : 'px-3 py-2',
+    'px-3 py-2',
     props.inversion ? 'bg-[#d2f9d1]' : 'bg-[#f4f6f8]',
     props.inversion ? 'dark:bg-[#a1dc95]' : 'dark:bg-[#1e1e20]',
     props.inversion ? 'message-request' : 'message-reply',

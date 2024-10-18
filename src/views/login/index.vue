@@ -31,9 +31,9 @@ const userStore = useUserStore()
 const router = useRouter()
 const route = useRoute()
 
-const handleSubmit = (e) => {
+const handleSubmit = (e: any) => {
   e.preventDefault()
-  formRef.value.validate(async (errors) => {
+  formRef.value.validate(async (errors: any) => {
     if (!errors) {
       const { username, password } = formInline
       message.loading('登录中...')

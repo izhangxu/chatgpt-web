@@ -2,17 +2,14 @@
 import { computed } from 'vue'
 import { NInput, NPopconfirm, NScrollbar } from 'naive-ui'
 import { SvgIcon } from '@/components/common'
-import { useAppStore, useChatStore } from '@/store'
-import { useBasicLayout } from '@/hooks/useBasicLayout'
+import { useChatStore } from '@/store'
 import { debounce } from '@/utils/functions/debounce'
 
-const { isMobile } = useBasicLayout()
-
-const appStore = useAppStore()
 const chatStore = useChatStore()
 
 const dataSources = computed(() => chatStore.history)
 
+// 选中聊天
 async function handleSelect({ uuid }: Chat.History) {
   if (isActive(uuid))
     return
@@ -20,9 +17,6 @@ async function handleSelect({ uuid }: Chat.History) {
   if (chatStore.active)
     chatStore.updateHistory(chatStore.active, { isEdit: false })
   await chatStore.setActive(uuid)
-
-  if (isMobile.value)
-    appStore.setSiderCollapsed(true)
 }
 
 function handleEdit({ uuid }: Chat.History, isEdit: boolean, event?: MouseEvent) {
@@ -33,8 +27,6 @@ function handleEdit({ uuid }: Chat.History, isEdit: boolean, event?: MouseEvent)
 function handleDelete(index: number, event?: MouseEvent | TouchEvent) {
   event?.stopPropagation()
   chatStore.deleteHistory(index)
-  if (isMobile.value)
-    appStore.setSiderCollapsed(true)
 }
 
 const handleDeleteDebounce = debounce(handleDelete, 600)

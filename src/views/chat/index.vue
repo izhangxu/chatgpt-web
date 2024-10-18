@@ -6,9 +6,7 @@ import { NAutoComplete, NButton, NInput, useDialog } from 'naive-ui'
 import { Message } from './components'
 import { useScroll } from './hooks/useScroll'
 import { useChat } from './hooks/useChat'
-import HeaderComponent from './components/Header/index.vue'
 import { HoverButton, SvgIcon } from '@/components/common'
-import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { useChatStore } from '@/store'
 import { fetchChatAPIProcess } from '@/api'
 import { t } from '@/locales'
@@ -22,7 +20,6 @@ const dialog = useDialog()
 
 const chatStore = useChatStore()
 
-const { isMobile } = useBasicLayout()
 const { addChat, updateChat, updateChatSome, getChatByUuidAndIndex } = useChat()
 const { scrollRef, scrollToBottom, scrollToBottomIfAtBottom } = useScroll()
 
@@ -336,17 +333,9 @@ function handleClear() {
 }
 
 function handleEnter(event: KeyboardEvent) {
-  if (!isMobile.value) {
-    if (event.key === 'Enter' && !event.shiftKey) {
-      event.preventDefault()
-      handleSubmit()
-    }
-  }
-  else {
-    if (event.key === 'Enter' && event.ctrlKey) {
-      event.preventDefault()
-      handleSubmit()
-    }
+  if (event.key === 'Enter' && event.ctrlKey) {
+    event.preventDefault()
+    handleSubmit()
   }
 }
 
@@ -358,8 +347,6 @@ function handleStop() {
 }
 
 const placeholder = computed(() => {
-  if (isMobile.value)
-    return t('chat.placeholderMobile')
   return t('chat.placeholder')
 })
 
@@ -368,15 +355,13 @@ const buttonDisabled = computed(() => {
 })
 
 const footerClass = computed(() => {
-  let classes = ['p-4']
-  if (isMobile.value)
-    classes = ['sticky', 'left-0', 'bottom-0', 'right-0', 'p-2', 'pr-3', 'overflow-hidden']
+  const classes = ['p-4']
   return classes
 })
 
 onMounted(() => {
   scrollToBottom()
-  if (inputRef.value && !isMobile.value)
+  if (inputRef.value)
     inputRef.value?.focus()
 })
 
@@ -388,16 +373,10 @@ onUnmounted(() => {
 
 <template>
   <div class="flex flex-col w-full h-full">
-    <!-- 移动端展示 -->
-    <HeaderComponent
-      v-if="isMobile"
-      @handle-clear="handleClear"
-    />
     <main class="flex-1 overflow-hidden">
       <div id="scrollRef" ref="scrollRef" class="h-full overflow-hidden overflow-y-auto">
         <div
-          class="w-full max-w-screen-xl m-auto dark:bg-[#101014]"
-          :class="[isMobile ? 'p-2' : 'p-4']"
+          class="w-full max-w-screen-xl m-auto dark:bg-[#101014] p-4"
         >
           <div id="image-wrapper" class="relative">
             <template v-if="!dataSources.length">
@@ -437,7 +416,7 @@ onUnmounted(() => {
       <div class="w-full max-w-screen-xl m-auto">
         <div class="flex items-center justify-between space-x-2">
           <!-- 清空 -->
-          <HoverButton v-if="!isMobile" @click="handleClear">
+          <HoverButton @click="handleClear">
             <span class="text-xl text-[#4f555e] dark:text-white">
               <SvgIcon icon="ri:delete-bin-line" />
             </span>
@@ -450,7 +429,7 @@ onUnmounted(() => {
                 v-model:value="prompt"
                 type="textarea"
                 :placeholder="placeholder"
-                :autosize="{ minRows: 1, maxRows: isMobile ? 4 : 8 }"
+                :autosize="{ minRows: 1, maxRows: 8 }"
                 @input="handleInput"
                 @focus="handleFocus"
                 @blur="handleBlur"

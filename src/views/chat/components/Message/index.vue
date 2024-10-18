@@ -6,7 +6,6 @@ import TextComponent from './Text.vue'
 import { SvgIcon } from '@/components/common'
 import { useIconRender } from '@/hooks/useIconRender'
 import { t } from '@/locales'
-import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { copyToClip } from '@/utils/copy'
 
 interface Props {
@@ -25,8 +24,6 @@ interface Emit {
 const props = defineProps<Props>()
 
 const emit = defineEmits<Emit>()
-
-const { isMobile } = useBasicLayout()
 
 const { iconRender } = useIconRender()
 
@@ -129,7 +126,7 @@ async function handleCopy() {
             <SvgIcon icon="ri:restart-line" />
           </button>
           <NDropdown
-            :trigger="isMobile ? 'click' : 'hover'"
+            trigger="hover"
             :placement="!inversion ? 'right' : 'left'"
             :options="options"
             @select="handleSelect"
