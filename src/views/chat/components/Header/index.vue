@@ -4,11 +4,9 @@ import { HoverButton, SvgIcon } from '@/components/common'
 import { useAppStore, useChatStore } from '@/store'
 
 interface Props {
-  usingContext: boolean
 }
 
 interface Emit {
-  (ev: 'export'): void
   (ev: 'handleClear'): void
 }
 
@@ -30,10 +28,6 @@ function onScrollToTop() {
   const scrollRef = document.querySelector('#scrollRef')
   if (scrollRef)
     nextTick(() => scrollRef.scrollTop = 0)
-}
-
-function handleExport() {
-  emit('export')
 }
 
 function handleClear() {
@@ -62,11 +56,6 @@ function handleClear() {
         {{ currentChatHistory?.title ?? '' }}
       </h1>
       <div class="flex items-center space-x-2">
-        <HoverButton @click="handleExport">
-          <span class="text-xl text-[#4f555e] dark:text-white">
-            <SvgIcon icon="ri:download-2-line" />
-          </span>
-        </HoverButton>
         <HoverButton @click="handleClear">
           <span class="text-xl text-[#4f555e] dark:text-white">
             <SvgIcon icon="ri:delete-bin-line" />

@@ -3,10 +3,15 @@ import type { PluginOption } from 'vite'
 import { defineConfig, loadEnv } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { VitePWA } from 'vite-plugin-pwa'
+import { viteMockServe } from 'vite-plugin-mock'
 
 function setupPlugins(env: ImportMetaEnv): PluginOption[] {
   return [
     vue(),
+    viteMockServe({
+      mockPath: 'mock',
+      enable: true,
+    }),
     env.VITE_GLOB_APP_PWA === 'true' && VitePWA({
       injectRegister: 'auto',
       manifest: {
