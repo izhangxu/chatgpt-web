@@ -79,7 +79,7 @@ const handleSubmit = (e: any) => {
           <img :src="loginImage" alt="">
         </div>
         <div class="view-account-top-desc">
-          注册页面
+          用户注册
         </div>
       </div>
       <div class="view-account-form">

@@ -78,7 +78,7 @@ const handleSubmit = (e: any) => {
           <img :src="loginImage" alt="">
         </div>
         <div class="view-account-top-desc">
-          登录页面
+          用户登录
         </div>
       </div>
       <div class="view-account-form">

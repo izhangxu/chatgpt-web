@@ -2,11 +2,13 @@
 import type { Ref } from 'vue'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { NAutoComplete, NButton, NInput, useDialog } from 'naive-ui'
+import { NAutoComplete, NButton, NIcon, NInput, NUpload, NUploadFileList, NUploadTrigger, useDialog } from 'naive-ui'
+import type { UploadFileInfo } from 'naive-ui'
+import { CloudUploadOutline } from '@vicons/ionicons5'
 import { Message } from './components'
 import { useScroll } from './hooks/useScroll'
 import { useChat } from './hooks/useChat'
-import { HoverButton, SvgIcon } from '@/components/common'
+import { SvgIcon } from '@/components/common'
 import { useChatStore } from '@/store'
 import { fetchChatAPIProcess } from '@/api'
 import { t } from '@/locales'
@@ -28,9 +30,19 @@ const { uuid } = route.params as { uuid: string }
 const dataSources = computed(() => chatStore.getChatByUuid(+uuid))
 const conversationList = computed(() => dataSources.value.filter(item => (!item.inversion && !!item.conversationOptions)))
 
+const sysValue = ref<string>('')
 const prompt = ref<string>('')
 const loading = ref<boolean>(false)
 const inputRef = ref<Ref | null>(null)
+
+const fileList = ref<UploadFileInfo[]>([
+  {
+    id: 'c',
+    name: '图片.png',
+    status: 'finished',
+    url: 'https://07akioni.oss-cn-beijing.aliyuncs.com/07akioni.jpeg',
+  },
+])
 
 // 使用storeToRefs，保证store修改后，联想部分能够重新渲染
 
@@ -317,21 +329,6 @@ function handleDelete(index: number) {
   })
 }
 
-function handleClear() {
-  if (loading.value)
-    return
-
-  dialog.warning({
-    title: t('chat.clearChat'),
-    content: t('chat.clearChatConfirm'),
-    positiveText: t('common.yes'),
-    negativeText: t('common.no'),
-    onPositiveClick: () => {
-      chatStore.clearChatByUuid(+uuid)
-    },
-  })
-}
-
 function handleEnter(event: KeyboardEvent) {
   if (event.key === 'Enter' && event.ctrlKey) {
     event.preventDefault()
@@ -358,6 +355,8 @@ const footerClass = computed(() => {
   const classes = ['p-4']
   return classes
 })
+
+const handleClick = () => {}
 
 onMounted(() => {
   scrollToBottom()
@@ -413,31 +412,49 @@ onUnmounted(() => {
       </div>
     </main>
     <footer :class="footerClass">
-      <div class="w-full max-w-screen-xl m-auto">
+      <div class="w-full max-w-screen-xl m-auto pl-4 pr-4">
+        <div class="flex items-center justify-between mb-4 w-1/2" style="padding-left: 65px;">
+          <NInput v-model:value="sysValue" class="" type="text" placeholder="system提示文本输入" />
+        </div>
         <div class="flex items-center justify-between space-x-2">
-          <!-- 清空 -->
-          <HoverButton @click="handleClear">
-            <span class="text-xl text-[#4f555e] dark:text-white">
-              <SvgIcon icon="ri:delete-bin-line" />
-            </span>
-          </HoverButton>
           <!-- 输入框 -->
-          <NAutoComplete v-model:value="prompt">
-            <template #default="{ handleInput, handleBlur, handleFocus }">
-              <NInput
-                ref="inputRef"
-                v-model:value="prompt"
-                type="textarea"
-                :placeholder="placeholder"
-                :autosize="{ minRows: 1, maxRows: 8 }"
-                @input="handleInput"
-                @focus="handleFocus"
-                @blur="handleBlur"
-                @keypress="handleEnter"
-              />
-            </template>
-          </NAutoComplete>
+          <NUpload
+            abstract
+            :default-file-list="fileList"
+            list-type="image"
+            action="https://www.mocky.io/v2/5e4bafc63100007100d8b70f"
+          >
+            <div class="pr-4">
+              <NUploadTrigger abstract>
+                <NButton circle>
+                  <NIcon size="18">
+                    <CloudUploadOutline />
+                  </NIcon>
+                </NButton>
+              </NUploadTrigger>
+            </div>
+            <div class="flex flex-col w-full">
+              <NUploadFileList class="w-48  z-40" />
+              <NAutoComplete v-model:value="prompt">
+                <template #default="{ handleInput, handleBlur, handleFocus }">
+                  <NInput
+                    ref="inputRef"
+                    v-model:value="prompt"
+                    type="textarea"
+                    :placeholder="placeholder"
+                    :autosize="{ minRows: 1, maxRows: 8 }"
+                    @input="handleInput"
+                    @focus="handleFocus"
+                    @blur="handleBlur"
+                    @keypress="handleEnter"
+                  />
+                </template>
+              </NAutoComplete>
+            </div>
+          </NUpload>
+          <!-- 按钮 -->
           <NButton type="primary" :disabled="buttonDisabled" @click="handleSubmit">
+            发送
             <template #icon>
               <span class="dark:text-black">
                 <SvgIcon icon="ri:send-plane-fill" />
