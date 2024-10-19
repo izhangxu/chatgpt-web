@@ -9,7 +9,6 @@ import { t } from '@/locales'
 import { copyToClip } from '@/utils/copy'
 
 interface Props {
-  inversion?: boolean
   error?: boolean
   text?: string
   loading?: boolean
@@ -41,9 +40,9 @@ const wrapClass = computed(() => {
     'min-w-[20px]',
     'rounded-md',
     'px-3 py-2',
-    props.inversion ? 'bg-[#d2f9d1]' : 'bg-[#f4f6f8]',
-    props.inversion ? 'dark:bg-[#a1dc95]' : 'dark:bg-[#1e1e20]',
-    props.inversion ? 'message-request' : 'message-reply',
+    'bg-[#f4f6f8]',
+    'dark:bg-[#1e1e20]',
+    'message-reply',
     { 'text-red-500': props.error },
   ]
 })
@@ -135,11 +134,10 @@ onUnmounted(() => {
 <template>
   <div class="text-black" :class="wrapClass">
     <div ref="textRef" class="leading-relaxed break-words">
-      <div v-if="!inversion">
+      <div>
         <div v-if="!asRawText" class="markdown-body" :class="{ 'markdown-body-generate': loading }" v-html="text" />
         <div v-else class="whitespace-pre-wrap" v-text="text" />
       </div>
-      <div v-else class="whitespace-pre-wrap" v-text="text" />
     </div>
   </div>
 </template>

@@ -5,61 +5,104 @@ import { useRoute } from 'vue-router'
 import { NAutoComplete, NButton, NIcon, NInput, NUpload, NUploadFileList, NUploadTrigger, useDialog, useMessage } from 'naive-ui'
 import type { UploadFileInfo } from 'naive-ui'
 import { CloudUploadOutline } from '@vicons/ionicons5'
+import { EventStreamContentType, fetchEventSource } from '@microsoft/fetch-event-source'
 import { Message } from './components'
 import { useScroll } from './hooks/useScroll'
 import { useChat } from './hooks/useChat'
 import { SvgIcon } from '@/components/common'
-import { useChatStore } from '@/store'
+import { useChatStore, useUserStore } from '@/store'
 import { fetchChatAPIProcess } from '@/api'
 import { t } from '@/locales'
-
-let controller = new AbortController()
-
-const openLongReply = import.meta.env.VITE_GLOB_OPEN_LONG_REPLY === 'true'
 
 const message = useMessage()
 const route = useRoute()
 const dialog = useDialog()
 
 const chatStore = useChatStore()
-// const userStore = useUserStore()
-const { addChat, updateChat, updateChatSome, getChat } = useChat()
+const userStore = useUserStore()
+
+const { addChat, updateChat, updateChatSome, getChatByUuidAndIndex } = useChat()
 const { scrollRef, scrollToBottom, scrollToBottomIfAtBottom } = useScroll()
+const { uuid }: any = route.params as { uuid: string }
 
-const { uuid } = route.params as { uuid: string }
-
-const dataSources = computed(() => chatStore.getChatList(+uuid))
-
-const conversationList = computed(() => dataSources.value.filter(item => (!item.inversion && !!item.conversationOptions)))
-
-const sysValue = ref<string>('')
+const dataSources = computed(() => chatStore.getChatByUuid(+uuid))
+const sysText = ref<string>('')
 const prompt = ref<string>('')
+const imageUrl = ref<string>('')
 const loading = ref<boolean>(false)
 const inputRef = ref<Ref | null>(null)
+const lastText = ref<string>('')
 
-const fileList = ref<UploadFileInfo[]>([
-  {
-    id: 'c',
-    name: '图片.png',
-    status: 'finished',
-    url: 'https://07akioni.oss-cn-beijing.aliyuncs.com/07akioni.jpeg',
-  },
-])
+const fileList = ref<UploadFileInfo[]>([])
 
 // 使用storeToRefs，保证store修改后，联想部分能够重新渲染
 
 // 未知原因刷新页面，loading 状态不会重置，手动重置
-dataSources.value.forEach((item, index) => {
+dataSources.value.forEach((item: any, index: number) => {
   if (item.loading)
     updateChatSome(+uuid, index, { loading: false })
 })
+
+console.log(dataSources.value)
 
 function handleSubmit() {
   onConversation()
 }
 
+class RetriableError extends Error { }
+class FatalError extends Error { }
+
+fetchEventSource('http://111.61.30.152:80/chat/stream', {
+  method: 'GET',
+  async onopen(response) {
+    if (response.ok && response.headers.get('content-type') === EventStreamContentType) {
+      // everything's good
+    }
+    else if (response.status >= 400 && response.status < 500 && response.status !== 429) {
+      // client-side errors are usually non-retriable:
+      throw new FatalError()
+    }
+    else {
+      throw new RetriableError()
+    }
+  },
+  onmessage(msg) {
+    // if the server emits an error message, throw an exception
+    // so it gets handled by the onerror callback below:
+    if (msg.event === 'FatalError')
+      throw new FatalError(msg.data)
+
+    lastText.value += msg
+
+    updateChat(
+      +uuid,
+      dataSources.value.length - 1,
+      {
+        dateTime: new Date().toLocaleString(),
+        text: lastText.value,
+        error: false,
+        inversion: false,
+        loading: true,
+      },
+    )
+  },
+  onclose() {
+    // if the server closes the connection unexpectedly, retry:
+    throw new RetriableError()
+  },
+  onerror(err) {
+    if (err instanceof FatalError) {
+      throw err // rethrow to stop the operation
+    }
+    else {
+      // do nothing to automatically retry. You can also
+      // return a specific retry interval here.
+    }
+  },
+})
+
 async function onConversation() {
-  let message = prompt.value
+  const message = prompt.value
 
   if (loading.value)
     return
@@ -67,17 +110,13 @@ async function onConversation() {
   if (!message || message.trim() === '')
     return
 
-  controller = new AbortController()
-
   addChat(
     +uuid,
     {
       dateTime: new Date().toLocaleString(),
-      text: message,
       inversion: true,
+      text: message,
       error: false,
-      conversationOptions: null,
-      requestOptions: { prompt: message, options: null },
     },
   )
   scrollToBottom()
@@ -85,33 +124,30 @@ async function onConversation() {
   loading.value = true
   prompt.value = ''
 
-  let options: Chat.ConversationRequest = {}
-  const lastContext = conversationList.value[conversationList.value.length - 1]?.conversationOptions
-
-  if (lastContext)
-    options = { ...lastContext }
-
   addChat(
     +uuid,
     {
       dateTime: new Date().toLocaleString(),
       text: t('chat.thinking'),
-      loading: true,
       inversion: false,
+      loading: true,
       error: false,
-      conversationOptions: null,
-      requestOptions: { prompt: message, options: { ...options } },
     },
   )
   scrollToBottom()
 
   try {
-    let lastText = ''
+    lastText.value = ''
+    const user_id = userStore.userInfo.name
     const fetchChatAPIOnce = async () => {
-      await fetchChatAPIProcess<Chat.ConversationResponse>({
-        prompt: message,
-        options,
-        signal: controller.signal,
+      await fetchChatAPIProcess<any>({
+        user_id,
+        uuid,
+        message: {
+          text: message,
+          image_url: imageUrl.value,
+          system: sysText.value,
+        },
         onDownloadProgress: ({ event }) => {
           const xhr = event.target
           const { responseText } = xhr
@@ -122,31 +158,11 @@ async function onConversation() {
             chunk = responseText.substring(lastIndex)
           try {
             const { data } = JSON.parse(chunk)
-            updateChat(
-              +uuid,
-              dataSources.value.length - 1,
-              {
-                dateTime: new Date().toLocaleString(),
-                text: lastText + (data.text ?? ''),
-                inversion: false,
-                error: false,
-                loading: true,
-                conversationOptions: { conversationId: data.conversationId, parentMessageId: data.id },
-                requestOptions: { prompt: message, options: { ...options } },
-              },
-            )
-
-            if (openLongReply && data.detail.choices[0].finish_reason === 'length') {
-              options.parentMessageId = data.id
-              lastText = data.text
-              message = ''
-              return fetchChatAPIOnce()
-            }
+            console.log(data)
 
             scrollToBottomIfAtBottom()
           }
           catch (error) {
-            //
           }
         },
       })
@@ -170,7 +186,7 @@ async function onConversation() {
       return
     }
 
-    const currentChat = getChat(+uuid, dataSources.value.length - 1)
+    const currentChat = getChatByUuidAndIndex(+uuid, dataSources.value.length - 1)
 
     if (currentChat?.text && currentChat.text !== '') {
       updateChatSome(
@@ -191,125 +207,12 @@ async function onConversation() {
       {
         dateTime: new Date().toLocaleString(),
         text: errorMessage,
-        inversion: false,
         error: true,
+        inversion: false,
         loading: false,
-        conversationOptions: null,
-        requestOptions: { prompt: message, options: { ...options } },
       },
     )
     scrollToBottomIfAtBottom()
-  }
-  finally {
-    loading.value = false
-  }
-}
-
-async function onRegenerate(index: number) {
-  if (loading.value)
-    return
-
-  controller = new AbortController()
-
-  const { requestOptions } = dataSources.value[index]
-
-  let message = requestOptions?.prompt ?? ''
-
-  let options: Chat.ConversationRequest = {}
-
-  if (requestOptions.options)
-    options = { ...requestOptions.options }
-
-  loading.value = true
-
-  updateChat(
-    +uuid,
-    index,
-    {
-      dateTime: new Date().toLocaleString(),
-      text: '',
-      inversion: false,
-      error: false,
-      loading: true,
-      conversationOptions: null,
-      requestOptions: { prompt: message, options: { ...options } },
-    },
-  )
-
-  try {
-    let lastText = ''
-    const fetchChatAPIOnce = async () => {
-      await fetchChatAPIProcess<Chat.ConversationResponse>({
-        prompt: message,
-        options,
-        signal: controller.signal,
-        onDownloadProgress: ({ event }) => {
-          const xhr = event.target
-          const { responseText } = xhr
-          // Always process the final line
-          const lastIndex = responseText.lastIndexOf('\n', responseText.length - 2)
-          let chunk = responseText
-          if (lastIndex !== -1)
-            chunk = responseText.substring(lastIndex)
-          try {
-            const data = JSON.parse(chunk)
-            updateChat(
-              +uuid,
-              index,
-              {
-                dateTime: new Date().toLocaleString(),
-                text: lastText + (data.text ?? ''),
-                inversion: false,
-                error: false,
-                loading: true,
-                conversationOptions: { conversationId: data.conversationId, parentMessageId: data.id },
-                requestOptions: { prompt: message, options: { ...options } },
-              },
-            )
-
-            if (openLongReply && data.detail.choices[0].finish_reason === 'length') {
-              options.parentMessageId = data.id
-              lastText = data.text
-              message = ''
-              return fetchChatAPIOnce()
-            }
-          }
-          catch (error) {
-            //
-          }
-        },
-      })
-      updateChatSome(+uuid, index, { loading: false })
-    }
-    await fetchChatAPIOnce()
-  }
-  catch (error: any) {
-    if (error.message === 'canceled') {
-      updateChatSome(
-        +uuid,
-        index,
-        {
-          loading: false,
-        },
-      )
-      return
-    }
-
-    const errorMessage = error?.message ?? t('common.wrong')
-
-    updateChat(
-      +uuid,
-      index,
-      {
-        dateTime: new Date().toLocaleString(),
-        text: errorMessage,
-        inversion: false,
-        error: true,
-        loading: false,
-        conversationOptions: null,
-        requestOptions: { prompt: message, options: { ...options } },
-      },
-    )
   }
   finally {
     loading.value = false
@@ -335,13 +238,6 @@ function handleEnter(event: KeyboardEvent) {
   if (event.key === 'Enter' && event.ctrlKey) {
     event.preventDefault()
     handleSubmit()
-  }
-}
-
-function handleStop() {
-  if (loading.value) {
-    controller.abort()
-    loading.value = false
   }
 }
 
@@ -372,19 +268,36 @@ const beforeUpload = async (data: {
   return true
 }
 
-const handleUploadChange = (data: { fileList: UploadFileInfo[] }) => {
+const handleUploadChange = (data: { fileList: UploadFileInfo[]; event: any }) => {
   fileList.value = data.fileList
-}
-onMounted(() => {
-  scrollToBottom()
 
+  if (data.fileList.length) {
+    try {
+      const { responseText } = data.event.target
+      const res = JSON.parse(responseText)
+      const { image_url }: any = res
+
+      imageUrl.value = image_url
+    }
+    catch (e) {
+    // console.log(e)
+    }
+  }
+  else {
+    imageUrl.value = ''
+  }
+}
+
+onMounted(async () => {
+  await chatStore.getChatList({ uuid, user_id: userStore.userInfo.name })
+
+  scrollToBottom()
   if (inputRef.value)
     inputRef.value?.focus()
 })
 
 onUnmounted(() => {
-  if (loading.value)
-    controller.abort()
+
 })
 </script>
 
@@ -407,16 +320,15 @@ onUnmounted(() => {
                 <Message
                   v-for="(item, index) of dataSources"
                   :key="index"
-                  :date-time="item.dateTime"
                   :text="item.text"
                   :inversion="item.inversion"
                   :error="item.error"
                   :loading="item.loading"
-                  @regenerate="onRegenerate(index)"
                   @delete="handleDelete(index)"
                 />
                 <div class="sticky bottom-0 left-0 flex justify-center">
-                  <NButton v-if="loading" type="warning" @click="handleStop">
+                  <!-- loading效果 -->
+                  <NButton v-if="loading" type="warning">
                     <template #icon>
                       <SvgIcon icon="ri:stop-circle-line" />
                     </template>
@@ -432,7 +344,7 @@ onUnmounted(() => {
     <footer class="p-4">
       <div class="w-full max-w-screen-xl m-auto pl-4 pr-4">
         <div class="flex items-center justify-between mb-4 w-1/2" style="padding-left: 58px;">
-          <NInput v-model:value="sysValue" class="bg-white" type="text" placeholder="system提示文本输入" />
+          <NInput v-model:value="sysText" class="bg-white" type="text" placeholder="system提示文本输入" />
         </div>
         <div class="flex items-center justify-between space-x-2">
           <!-- 输入框 -->
@@ -440,7 +352,7 @@ onUnmounted(() => {
             v-model:file-list="fileList"
             abstract
             list-type="image"
-            action="https://www.mocky.io/v2/5e4bafc63100007100d8b70f"
+            action="http://111.61.30.152:80/chat/images"
             :max="1"
             @before-upload="beforeUpload"
             @change="handleUploadChange"

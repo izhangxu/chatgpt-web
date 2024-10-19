@@ -21,20 +21,23 @@ export function fetchChatConfig<T = any>() {
 
 export function fetchChatAPIProcess<T = any>(
   params: {
-    prompt: string
-    options?: { conversationId?: string; parentMessageId?: string }
-    signal?: GenericAbortSignal
+    user_id: string
+    uuid: string
+    message: {
+      text: string
+      image_url?: string
+      system?: string
+    }
     onDownloadProgress?: (progressEvent: AxiosProgressEvent) => void },
 ) {
-  const data: Record<string, any> = {
-    prompt: params.prompt,
-    options: params.options,
-  }
-
+  const { user_id, uuid, message } = params
   return post<T>({
-    url: '/chat-process',
-    data,
-    signal: params.signal,
+    url: '/chat/completion',
+    data: {
+      user_id,
+      session_id: uuid,
+      message,
+    },
     onDownloadProgress: params.onDownloadProgress,
   })
 }

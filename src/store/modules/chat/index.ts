@@ -1,7 +1,8 @@
 import { defineStore } from 'pinia'
-import { defaultState, getLocalState, setLocalState } from './helper'
+import { getLocalState, setLocalState } from './helper'
 import { router } from '@/router'
-import { getSessionList, sessionCreate, sessionDelete, sessionRename } from '@/api'
+import { getSessionList, sessionChange, sessionCreate, sessionDelete, sessionRename } from '@/api'
+import { t } from '@/locales'
 
 export const useChatStore = defineStore('chat-store', {
   state: (): Chat.ChatState => getLocalState(),
@@ -12,6 +13,14 @@ export const useChatStore = defineStore('chat-store', {
       if (index !== -1)
         return state.history[index]
       return null
+    },
+
+    getChatByUuid(state: Chat.ChatState) {
+      return (uuid?: number) => {
+        if (uuid)
+          return state.chat.find(item => item.uuid === uuid)?.data ?? []
+        return state.chat.find(item => item.uuid === state.active)?.data ?? []
+      }
     },
   },
 
@@ -45,7 +54,7 @@ export const useChatStore = defineStore('chat-store', {
         const [session] = res.sessions
         const [uuid, title] = session
 
-        this.history.unshift({ title, uuid, isEdit: false, chat: [] })
+        this.history.unshift({ title, uuid, isEdit: false })
         this.active = uuid
         this.reloadRoute(uuid)
       }
@@ -117,66 +126,130 @@ export const useChatStore = defineStore('chat-store', {
       return await this.reloadRoute(uuid)
     },
 
-    getChatList(uuid: number) {
+    async getChatList(params: any) {
+      const { uuid, user_id } = params
       const index = this.history.findIndex(item => item.uuid === uuid)
-      console.log(this.history[0])
-      if (index !== -1)
-        return this.history[index]?.chat
-      return []
+      const res: any = await sessionChange({ session_id: uuid, user_id })
+
+      if (res.status === 'success') {
+        if (index !== -1) {
+          const chatIndex = this.chat.findIndex(e => e.uuid === uuid)
+
+          const chatList: any = []
+          res.histories.forEach((e: any) => {
+            const [right, left] = e
+            if (right && left) {
+              chatList.push(...[{
+                inversion: true,
+                text: right,
+                error: false,
+              }, {
+                inversion: true,
+                text: left,
+                error: false,
+              }])
+            }
+            else if (right && !left) {
+              chatList.push(...[{
+                inversion: true,
+                text: right,
+                error: false,
+              }])
+            }
+          })
+          if (chatIndex !== -1)
+            this.chat[chatIndex].data = chatList
+          else
+            this.chat.push({ uuid, data: chatList })
+        }
+      }
     },
 
-    getChatByUuid(uuid: number, index: number) {
-      const historyIndex = this.history.findIndex(item => item.uuid === uuid)
-      if (historyIndex !== -1)
-        return this.history[historyIndex].chat[index]
+    getChatByUuidAndIndex(uuid: number, index: number) {
+      if (!uuid || uuid === 0) {
+        if (this.chat.length)
+          return this.chat[0].data[index]
+        return null
+      }
+      const chatIndex = this.chat.findIndex(item => item.uuid === uuid)
+      if (chatIndex !== -1)
+        return this.chat[chatIndex].data[index]
       return null
     },
 
     addChatByUuid(uuid: number, chat: Chat.Chat) {
-      const index = this.history.findIndex(item => item.uuid === uuid)
+      if (!uuid || uuid === 0) {
+        if (this.history.length === 0) {
+          // 未添加对话
+          const uuid = Date.now()
+          this.history.push({ uuid, title: chat.text, isEdit: false })
+          this.chat.push({ uuid, data: [chat] })
+          this.active = uuid
+          this.recordState()
+        }
+        else {
+          this.chat[0].data.push(chat)
+          if (this.history[0].title === t('chat.newChatTitle'))
+            this.history[0].title = chat.text
+          this.recordState()
+        }
+      }
+
+      const index = this.chat.findIndex(item => item.uuid === uuid)
       if (index !== -1) {
-        this.history[index].chat.push(chat)
+        this.chat[index].data.push(chat)
+        if (this.history[index].title === t('chat.newChatTitle'))
+          this.history[index].title = chat.text
         this.recordState()
       }
     },
 
     updateChatByUuid(uuid: number, index: number, chat: Chat.Chat) {
-      const historyIndex = this.history.findIndex(item => item.uuid === uuid)
-      if (historyIndex !== -1) {
-        this.history[index].chat[index] = chat
+      if (!uuid || uuid === 0) {
+        if (this.chat.length) {
+          this.chat[0].data[index] = chat
+          this.recordState()
+        }
+        return
+      }
+
+      const chatIndex = this.chat.findIndex(item => item.uuid === uuid)
+      if (chatIndex !== -1) {
+        this.chat[chatIndex].data[index] = chat
         this.recordState()
       }
     },
 
     updateChatSomeByUuid(uuid: number, index: number, chat: Partial<Chat.Chat>) {
-      const historyIndex = this.history.findIndex(item => item.uuid === uuid)
-      if (historyIndex !== -1) {
-        this.history[historyIndex].chat[index] = { ...this.history[historyIndex].chat[index], ...chat }
+      if (!uuid || uuid === 0) {
+        if (this.chat.length) {
+          this.chat[0].data[index] = { ...this.chat[0].data[index], ...chat }
+          this.recordState()
+        }
+        return
+      }
+
+      const chatIndex = this.chat.findIndex(item => item.uuid === uuid)
+      if (chatIndex !== -1) {
+        this.chat[chatIndex].data[index] = { ...this.chat[chatIndex].data[index], ...chat }
         this.recordState()
       }
     },
 
     deleteChatByUuid(uuid: number, index: number) {
-      const historyIndex = this.history.findIndex(item => item.uuid === uuid)
+      if (!uuid || uuid === 0) {
+        if (this.chat.length) {
+          this.chat[0].data.splice(index, 1)
+          this.recordState()
+        }
+        return
+      }
 
-      if (historyIndex !== -1) {
-        this.history[historyIndex].chat.splice(index, 1)
+      const chatIndex = this.chat.findIndex(item => item.uuid === uuid)
+      if (chatIndex !== -1) {
+        this.chat[chatIndex].data.splice(index, 1)
         this.recordState()
       }
-    },
-
-    clearChatByUuid(uuid: number) {
-      const historyIndex = this.history.findIndex(item => item.uuid === uuid)
-
-      if (historyIndex !== -1) {
-        this.history[historyIndex].chat = []
-        this.recordState()
-      }
-    },
-
-    clearHistory() {
-      this.$state = { ...defaultState() }
-      this.recordState()
     },
 
     async reloadRoute(uuid?: number) {

@@ -4,7 +4,6 @@ import { NDropdown, useMessage } from 'naive-ui'
 import AvatarComponent from './Avatar.vue'
 import TextComponent from './Text.vue'
 import { SvgIcon } from '@/components/common'
-import { useIconRender } from '@/hooks/useIconRender'
 import { t } from '@/locales'
 import { copyToClip } from '@/utils/copy'
 
@@ -25,7 +24,7 @@ const props = defineProps<Props>()
 
 const emit = defineEmits<Emit>()
 
-const { iconRender } = useIconRender()
+// const { iconRender } = useIconRender()
 
 const message = useMessage()
 
@@ -36,26 +35,13 @@ const asRawText = ref(props.inversion)
 const messageRef = ref<HTMLElement>()
 
 const options = computed(() => {
-  const common = [
-    {
-      label: t('chat.copy'),
-      key: 'copyText',
-      icon: iconRender({ icon: 'ri:file-copy-2-line' }),
-    },
-    {
-      label: t('common.delete'),
-      key: 'delete',
-      icon: iconRender({ icon: 'ri:delete-bin-line' }),
-    },
+  const common: any = [
+    // {
+    //   label: t('chat.copy'),
+    //   key: 'copyText',
+    //   icon: iconRender({ icon: 'ri:file-copy-2-line' }),
+    // },
   ]
-
-  if (!props.inversion) {
-    common.unshift({
-      label: asRawText.value ? t('chat.preview') : t('chat.showRawText'),
-      key: 'toggleRenderType',
-      icon: iconRender({ icon: asRawText.value ? 'ic:outline-code-off' : 'ic:outline-code' }),
-    })
-  }
 
   return common
 })
@@ -64,12 +50,6 @@ function handleSelect(key: 'copyText' | 'delete' | 'toggleRenderType') {
   switch (key) {
     case 'copyText':
       handleCopy()
-      return
-    case 'toggleRenderType':
-      asRawText.value = !asRawText.value
-      return
-    case 'delete':
-      emit('delete')
   }
 }
 
@@ -102,9 +82,9 @@ async function handleCopy() {
       <AvatarComponent :image="inversion" />
     </div>
     <div class="overflow-hidden text-sm " :class="[inversion ? 'items-end' : 'items-start']">
-      <p class="text-xs text-[#b4bbc4]" :class="[inversion ? 'text-right' : 'text-left']">
+      <!-- <p class="text-xs text-[#b4bbc4]" :class="[inversion ? 'text-right' : 'text-left']">
         {{ dateTime }}
-      </p>
+      </p> -->
       <div
         class="flex items-end gap-1 mt-2"
         :class="[inversion ? 'flex-row-reverse' : 'flex-row']"

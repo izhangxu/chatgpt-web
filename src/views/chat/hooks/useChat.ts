@@ -3,8 +3,8 @@ import { useChatStore } from '@/store'
 export function useChat() {
   const chatStore = useChatStore()
 
-  const getChat = (uuid: number, index: number) => {
-    return chatStore.getChatByUuid(uuid, index)
+  const getChatByUuidAndIndex = (uuid: number, index: number) => {
+    return chatStore.getChatByUuidAndIndex(uuid, index)
   }
 
   const getChatList = (uuid: number) => {
@@ -28,6 +28,6 @@ export function useChat() {
     updateChat,
     updateChatSome,
     getChatList,
-    getChat,
+    getChatByUuidAndIndex,
   }
 }
