@@ -2,7 +2,7 @@
 import type { Ref } from 'vue'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { NAutoComplete, NButton, NIcon, NInput, NUpload, NUploadFileList, NUploadTrigger, useDialog } from 'naive-ui'
+import { NAutoComplete, NButton, NIcon, NInput, NUpload, NUploadFileList, NUploadTrigger, useDialog, useMessage } from 'naive-ui'
 import type { UploadFileInfo } from 'naive-ui'
 import { CloudUploadOutline } from '@vicons/ionicons5'
 import { Message } from './components'
@@ -17,17 +17,19 @@ let controller = new AbortController()
 
 const openLongReply = import.meta.env.VITE_GLOB_OPEN_LONG_REPLY === 'true'
 
+const message = useMessage()
 const route = useRoute()
 const dialog = useDialog()
 
 const chatStore = useChatStore()
-
-const { addChat, updateChat, updateChatSome, getChatByUuidAndIndex } = useChat()
+// const userStore = useUserStore()
+const { addChat, updateChat, updateChatSome, getChat } = useChat()
 const { scrollRef, scrollToBottom, scrollToBottomIfAtBottom } = useScroll()
 
 const { uuid } = route.params as { uuid: string }
 
-const dataSources = computed(() => chatStore.getChatByUuid(+uuid))
+const dataSources = computed(() => chatStore.getChatList(+uuid))
+
 const conversationList = computed(() => dataSources.value.filter(item => (!item.inversion && !!item.conversationOptions)))
 
 const sysValue = ref<string>('')
@@ -168,7 +170,7 @@ async function onConversation() {
       return
     }
 
-    const currentChat = getChatByUuidAndIndex(+uuid, dataSources.value.length - 1)
+    const currentChat = getChat(+uuid, dataSources.value.length - 1)
 
     if (currentChat?.text && currentChat.text !== '') {
       updateChatSome(
@@ -351,15 +353,31 @@ const buttonDisabled = computed(() => {
   return loading.value || !prompt.value || prompt.value.trim() === ''
 })
 
-const footerClass = computed(() => {
-  const classes = ['p-4']
+const fileListClass = computed(() => {
+  let classes = 'w-48 z-40'
+  if (fileList.value?.length)
+    classes += ' show-in-input'
+
   return classes
 })
 
-const handleClick = () => {}
+const beforeUpload = async (data: {
+  file: UploadFileInfo
+  fileList: UploadFileInfo[]
+}) => {
+  if (data.file.file?.type && !['image/gif', 'image/jpeg', 'image/jpg', 'image/png', 'image/svg'].includes(data.file.file?.type)) {
+    message.error('只能上传图片文件，请重新上传')
+    return false
+  }
+  return true
+}
 
+const handleUploadChange = (data: { fileList: UploadFileInfo[] }) => {
+  fileList.value = data.fileList
+}
 onMounted(() => {
   scrollToBottom()
+
   if (inputRef.value)
     inputRef.value?.focus()
 })
@@ -411,36 +429,40 @@ onUnmounted(() => {
         </div>
       </div>
     </main>
-    <footer :class="footerClass">
+    <footer class="p-4">
       <div class="w-full max-w-screen-xl m-auto pl-4 pr-4">
-        <div class="flex items-center justify-between mb-4 w-1/2" style="padding-left: 65px;">
-          <NInput v-model:value="sysValue" class="" type="text" placeholder="system提示文本输入" />
+        <div class="flex items-center justify-between mb-4 w-1/2" style="padding-left: 58px;">
+          <NInput v-model:value="sysValue" class="bg-white" type="text" placeholder="system提示文本输入" />
         </div>
         <div class="flex items-center justify-between space-x-2">
           <!-- 输入框 -->
           <NUpload
+            v-model:file-list="fileList"
             abstract
-            :default-file-list="fileList"
             list-type="image"
             action="https://www.mocky.io/v2/5e4bafc63100007100d8b70f"
+            :max="1"
+            @before-upload="beforeUpload"
+            @change="handleUploadChange"
           >
             <div class="pr-4">
-              <NUploadTrigger abstract>
-                <NButton circle>
+              <NUploadTrigger #="{ handleClick }" abstract>
+                <NButton circle @click="handleClick">
                   <NIcon size="18">
                     <CloudUploadOutline />
                   </NIcon>
                 </NButton>
               </NUploadTrigger>
             </div>
-            <div class="flex flex-col w-full">
-              <NUploadFileList class="w-48  z-40" />
+            <div class="flex flex-col w-full custom-wrapper">
+              <NUploadFileList :class="fileListClass" />
               <NAutoComplete v-model:value="prompt">
                 <template #default="{ handleInput, handleBlur, handleFocus }">
                   <NInput
                     ref="inputRef"
                     v-model:value="prompt"
                     type="textarea"
+                    :theme-overrides="{ border: '0' }"
                     :placeholder="placeholder"
                     :autosize="{ minRows: 1, maxRows: 8 }"
                     @input="handleInput"
@@ -466,3 +488,29 @@ onUnmounted(() => {
     </footer>
   </div>
 </template>
+
+<style lang="less" scoped>
+.custom-wrapper {
+  box-shadow:  0 2px 16px 0 rgba(0,0,0,0.1), 0 0 16px -2px rgba(0,0,0,0.06);
+  border: 1px solid rgb(224, 224, 230);
+  border-radius: 3px;
+
+  .n-upload-file-list.show-in-input {
+    margin: 12px;
+    background-color: rgb(243, 243, 245);
+  }
+
+  &:hover {
+    border: 1px solid #36ad6a;
+  }
+
+  ::v-deep(.n-input) {
+    --n-border: none !important;
+    --n-border-hover: none !important;
+    --n-border-focus: none !important;
+    --n-box-shadow-focus: none !important;
+    --n-border-radius: none !important;
+  }
+
+}
+</style>

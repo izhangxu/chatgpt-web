@@ -1,5 +1,4 @@
 import { ss } from '@/utils/storage'
-import { t } from '@/locales'
 
 const LOCAL_NAME = 'chatStorage'
 
@@ -8,8 +7,8 @@ export function defaultState(): Chat.ChatState {
   return {
     active: uuid,
     usingContext: true,
-    history: [{ uuid, title: t('chat.newChatTitle'), isEdit: false }],
-    chat: [{ uuid, data: [] }],
+    // history: [{ uuid, title: t('chat.newChatTitle'), isEdit: false, chat: [] }],
+    history: [],
   }
 }
 

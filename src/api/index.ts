@@ -66,9 +66,78 @@ export function userRegister<T>(data: any) {
   })
 }
 
-export function updatePwd<T>(data: any) {
+export function modifyPwd<T>(data: any) {
   return post<T>({
     url: '/user/passwd',
+    data,
+  })
+}
+
+export function sessionCreate<T>(data: any) {
+  return post<T>({
+    url: '/session/create',
+    data,
+  })
+}
+
+export function sessionChange<T>(data: any) {
+  return post<T>({
+    url: '/session/change',
+    data,
+  })
+}
+
+export function sessionRename<T>(data: any) {
+  return post<T>({
+    url: '/session/rename',
+    data,
+  })
+}
+
+export function getSessionList<T>(data: any) {
+  return post<T>({
+    url: '/session/list',
+    data,
+  })
+}
+
+export function sessionDelete<T>(data: any) {
+  return post<T>({
+    url: '/session/delete',
+    data,
+  })
+}
+
+export function uploadImages<T>(data: any) {
+  return post<T>({
+    url: '/chat/images',
+    data,
+  })
+}
+
+export function getChatStream<T>(data: any) {
+  return post<T>({
+    url: '/chat/stream',
+    data,
+  })
+}
+
+export function chatRegenerate<T>(data: any) {
+  return post<T>({
+    url: '/chat/regenerate',
+    data,
+  })
+}
+
+export function getFile<T>(data: any) {
+  return post<T>({
+    url: `/chat/${data.filename}`,
+  })
+}
+
+export function chatCompletion<T>(data: any) {
+  return post<T>({
+    url: '/chat/completion',
     data,
   })
 }

@@ -1,10 +1,11 @@
 <script setup lang='ts'>
-import { defineAsyncComponent, ref } from 'vue'
-import { UserAvatar } from '@/components/common'
+import { NTooltip } from 'naive-ui'
+import { HoverButton, SvgIcon, UserAvatar } from '@/components/common'
+import { router } from '@/router'
 
-const Setting = defineAsyncComponent(() => import('@/components/common/Setting/index.vue'))
-
-const show = ref(false)
+const goModifyPwdPage = () => {
+  router.push('/modify/pwd')
+}
 </script>
 
 <template>
@@ -12,7 +13,15 @@ const show = ref(false)
     <div class="flex-1 flex-shrink-0 overflow-hidden">
       <UserAvatar />
     </div>
-
-    <Setting v-if="show" v-model:visible="show" />
+    <NTooltip trigger="hover">
+      <template #trigger>
+        <HoverButton @click="goModifyPwdPage">
+          <span class="text-xl text-[#4f555e] dark:text-white">
+            <SvgIcon icon="ri:settings-4-line" />
+          </span>
+        </HoverButton>
+      </template>
+      修改密码
+    </NTooltip>
   </footer>
 </template>

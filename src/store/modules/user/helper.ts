@@ -9,16 +9,14 @@ export interface UserInfo {
 
 export interface UserState {
   userInfo: UserInfo
-  logined: Boolean
 }
 
 export function defaultSetting(): UserState {
   return {
     userInfo: {
       avatar: 'https://raw.githubusercontent.com/Chanzhaoyu/chatgpt-web/main/src/assets/avatar.jpg',
-      name: 'ChenZhaoYu',
+      name: '',
     },
-    logined: true,
   }
 }
 

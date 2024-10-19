@@ -1,31 +1,19 @@
 import { defineStore } from 'pinia'
 import type { UserInfo, UserState } from './helper'
 import { defaultSetting, getLocalState, setLocalState } from './helper'
-import { fetchUserInfo, updatePwd, userLogin, userRegister } from '@/api'
+import { modifyPwd, userLogin, userRegister } from '@/api'
 
 export const useUserStore = defineStore('user-store', {
   state: (): UserState => getLocalState(),
   actions: {
-    async getUserInfo() {
-      try {
-        const { data } = await fetchUserInfo<UserState>()
-        this.updateUserInfo(data)
-        return Promise.resolve(data)
-      }
-      catch (error) {
-        return Promise.reject(error)
-      }
-    },
 
-    updateUserInfo({ userInfo, logined }: { userInfo: Partial<UserInfo>; logined?: Boolean }) {
+    updateUserInfo(userInfo: Partial<UserInfo>) {
       this.userInfo = { ...this.userInfo, ...userInfo }
-      this.logined = logined || this.logined
       this.recordState()
     },
 
     resetUserInfo() {
       this.userInfo = { ...defaultSetting().userInfo }
-      this.logined = true
       this.recordState()
     },
 
@@ -35,6 +23,7 @@ export const useUserStore = defineStore('user-store', {
 
     async login(params: any) {
       const res = await userLogin<any>(params)
+
       return res
     },
 
@@ -43,8 +32,8 @@ export const useUserStore = defineStore('user-store', {
       return res
     },
 
-    async updatePwd(params: any) {
-      const res = await updatePwd<any>(params)
+    async modifyPwd(params: any) {
+      const res = await modifyPwd<any>(params)
       return res
     },
   },

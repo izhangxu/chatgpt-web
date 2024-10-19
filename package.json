@@ -28,6 +28,7 @@
     "@vueuse/core": "^9.13.0",
     "highlight.js": "^11.7.0",
     "html-to-image": "^1.11.11",
+    "js-cookie": "^3.0.5",
     "katex": "^0.16.4",
     "markdown-it": "^13.0.1",
     "mermaid-it-markdown": "^1.0.8",

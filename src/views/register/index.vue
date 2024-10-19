@@ -7,7 +7,7 @@ import { useUserStore } from '@/store/modules/user'
 import loginImage from '@/assets/account-logo.png'
 interface FormState {
   username: string
-  password: string
+  passwd: string
 }
 
 const formRef = ref()
@@ -16,15 +16,14 @@ const loading = ref(false)
 
 const formInline = reactive({
   username: '',
-  password: '',
-  passwordAgain: '',
-  isCaptcha: true,
+  passwd: '',
+  passwdAgain: '',
 })
 
 const rules = {
   username: { required: true, message: '请输入用户名', trigger: 'blur' },
-  password: { required: true, message: '请输入密码', trigger: 'blur' },
-  passwordAgain: { required: true, message: '请输入密码', trigger: 'blur' },
+  passwd: { required: true, message: '请输入密码', trigger: 'blur' },
+  passwdAgain: { required: true, message: '请再次输入密码', trigger: 'blur' },
 }
 
 const userStore = useUserStore()
@@ -36,27 +35,30 @@ const handleSubmit = (e: any) => {
   e.preventDefault()
   formRef.value.validate(async (errors: any) => {
     if (!errors) {
-      const { username, password } = formInline
-      message.loading('登录中...')
+      const { username, passwd, passwdAgain } = formInline
+      if (passwd !== passwdAgain)
+        return message.error('两次输入的密码不一致')
+
+      message.loading('注册中...')
       loading.value = true
 
       const params: FormState = {
         username,
-        password,
+        passwd,
       }
 
       try {
-        const { code, message: msg } = await userStore.login(params)
+        const { status, detail: msg } = await userStore.register(params)
         message.destroyAll()
-        if (code === 0) {
+        if (status === 'success') {
           const toPath = decodeURIComponent((route.query?.redirect || '/') as string)
-          message.success('登录成功，即将进入系统')
-          if (route.name === '/login')
-            router.replace('/')
+          message.success('注册成功，即将进入登录页面')
+          if (route.name === 'register')
+            router.replace('/login')
           else router.replace(toPath)
         }
         else {
-          message.info(msg || '登录失败')
+          message.info(msg || '注册失败')
         }
       }
       finally {
@@ -64,7 +66,7 @@ const handleSubmit = (e: any) => {
       }
     }
     else {
-      message.error('请填写完整信息，并且进行验证码校验')
+      message.error('请填写完整信息')
     }
   })
 }
@@ -99,9 +101,9 @@ const handleSubmit = (e: any) => {
               </template>
             </NInput>
           </NFormItem>
-          <NFormItem path="password">
+          <NFormItem path="passwd">
             <NInput
-              v-model:value="formInline.password"
+              v-model:value="formInline.passwd"
               type="password"
               show-password-on="click"
               placeholder="请输入密码"
@@ -115,7 +117,7 @@ const handleSubmit = (e: any) => {
           </NFormItem>
           <NFormItem path="password">
             <NInput
-              v-model:value="formInline.passwordAgain"
+              v-model:value="formInline.passwdAgain"
               type="password"
               show-password-on="click"
               placeholder="请再次输入密码"

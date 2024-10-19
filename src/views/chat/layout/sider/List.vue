@@ -1,13 +1,24 @@
 <script setup lang='ts'>
-import { computed } from 'vue'
+import { onMounted, ref } from 'vue'
 import { NInput, NPopconfirm, NScrollbar } from 'naive-ui'
 import { SvgIcon } from '@/components/common'
-import { useChatStore } from '@/store'
+import { useChatStore, useUserStore } from '@/store'
 import { debounce } from '@/utils/functions/debounce'
 
+const userStore = useUserStore()
 const chatStore = useChatStore()
+const dataSources = ref<any>([])
 
-const dataSources = computed(() => chatStore.history)
+onMounted(() => {
+  getSessionList()
+})
+
+async function getSessionList() {
+  const user_id = userStore.userInfo.name
+  const historyList = await chatStore.getHistoryList({ user_id })
+
+  dataSources.value = historyList
+}
 
 // 选中聊天
 async function handleSelect({ uuid }: Chat.History) {
@@ -15,26 +26,42 @@ async function handleSelect({ uuid }: Chat.History) {
     return
 
   if (chatStore.active)
-    chatStore.updateHistory(chatStore.active, { isEdit: false })
+    await chatStore.updateHistory({ uuid: chatStore.active, isEdit: false })
   await chatStore.setActive(uuid)
 }
-
-function handleEdit({ uuid }: Chat.History, isEdit: boolean, event?: MouseEvent) {
+// 保存
+async function handleSave({ uuid, title }: Chat.History, event?: MouseEvent) {
   event?.stopPropagation()
-  chatStore.updateHistory(uuid, { isEdit })
+
+  const user_id = userStore.userInfo.name
+  await chatStore.updateHistory({ user_id, uuid, isEdit: false, title })
 }
 
-function handleDelete(index: number, event?: MouseEvent | TouchEvent) {
+// 编辑
+async function handleEdit({ uuid }: Chat.History, event?: MouseEvent) {
   event?.stopPropagation()
-  chatStore.deleteHistory(index)
+
+  await chatStore.updateHistory({ uuid, isEdit: true })
+}
+
+// 删除会话
+async function handleDelete(index: number, event?: MouseEvent | TouchEvent) {
+  event?.stopPropagation()
+
+  const user_id = userStore.userInfo.name
+  await chatStore.deleteHistory({ index, user_id })
 }
 
 const handleDeleteDebounce = debounce(handleDelete, 600)
 
-function handleEnter({ uuid }: Chat.History, isEdit: boolean, event: KeyboardEvent) {
+// 更改名称
+async function handleEnter({ uuid, title }: Chat.History, event: KeyboardEvent) {
   event?.stopPropagation()
-  if (event.key === 'Enter')
-    chatStore.updateHistory(uuid, { isEdit })
+
+  if (event.key === 'Enter') {
+    const user_id = userStore.userInfo.name
+    await chatStore.updateHistory({ user_id, uuid, isEdit: false, title })
+  }
 }
 
 function isActive(uuid: number) {
@@ -62,23 +89,27 @@ function isActive(uuid: number) {
               <SvgIcon icon="ri:message-3-line" />
             </span>
             <div class="relative flex-1 overflow-hidden break-all text-ellipsis whitespace-nowrap">
+              <!-- 更新名称输入框 -->
               <NInput
                 v-if="item.isEdit"
                 v-model:value="item.title" size="tiny"
-                @keypress="handleEnter(item, false, $event)"
+                @keypress="handleEnter(item, $event)"
               />
               <span v-else>{{ item.title }}</span>
             </div>
             <div v-if="isActive(item.uuid)" class="absolute z-10 flex visible right-1">
+              <!-- 更新名称-保存按钮 -->
               <template v-if="item.isEdit">
-                <button class="p-1" @click="handleEdit(item, false, $event)">
+                <button class="p-1" @click="handleSave(item, $event)">
                   <SvgIcon icon="ri:save-line" />
                 </button>
               </template>
+              <!-- 更新名称-编辑按钮 -->
               <template v-else>
                 <button class="p-1">
-                  <SvgIcon icon="ri:edit-line" @click="handleEdit(item, true, $event)" />
+                  <SvgIcon icon="ri:edit-line" @click="handleEdit(item, $event)" />
                 </button>
+                <!-- 删除 -->
                 <NPopconfirm placement="bottom" @positive-click="handleDeleteDebounce(index, $event)">
                   <template #trigger>
                     <button class="p-1">

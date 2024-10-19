@@ -1,11 +1,10 @@
 <script lang="ts" setup>
 import { reactive, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 import { NButton, NForm, NFormItem, NIcon, NInput, useMessage } from 'naive-ui'
 import { LockClosedOutline, PersonOutline } from '@vicons/ionicons5'
 import { useUserStore } from '@/store/modules/user'
 import loginImage from '@/assets/account-logo.png'
-
 interface FormState {
   username: string
   passwd: string
@@ -26,16 +25,17 @@ const rules = {
 }
 
 const userStore = useUserStore()
-
 const router = useRouter()
-const route = useRoute()
+
+formInline.username = userStore.userInfo.name
 
 const handleSubmit = (e: any) => {
   e.preventDefault()
   formRef.value.validate(async (errors: any) => {
     if (!errors) {
       const { username, passwd } = formInline
-      message.loading('登录中...')
+
+      message.loading('修改中...')
       loading.value = true
 
       const params: FormState = {
@@ -44,18 +44,15 @@ const handleSubmit = (e: any) => {
       }
 
       try {
-        const { status, detail: msg } = await userStore.login(params)
+        const { status, detail: msg } = await userStore.modifyPwd(params)
         message.destroyAll()
         if (status === 'success') {
-          const toPath = decodeURIComponent((route.query?.redirect || '/') as string)
-          message.success('登录成功，即将进入系统')
-          userStore.updateUserInfo({ name: username })
-          if (route.name === '/login')
-            router.replace('/')
-          else router.replace(toPath)
+          message.success('修改成功，请重新登录')
+          userStore.resetUserInfo()
+          router.replace('/login')
         }
         else {
-          message.info(msg || '登录失败')
+          message.info(msg || '修改失败')
         }
       }
       finally {
@@ -66,10 +63,6 @@ const handleSubmit = (e: any) => {
       message.error('请填写完整信息')
     }
   })
-}
-
-const goRegisterPage = () => {
-  router.replace('/register')
 }
 </script>
 
@@ -82,7 +75,7 @@ const goRegisterPage = () => {
           <img :src="loginImage" alt="">
         </div>
         <div class="view-account-top-desc">
-          用户登录
+          修改密码
         </div>
       </div>
       <div class="view-account-form">
@@ -94,7 +87,7 @@ const goRegisterPage = () => {
           :rules="rules"
         >
           <NFormItem path="username">
-            <NInput v-model:value="formInline.username" placeholder="请输入用户名">
+            <NInput v-model:value="formInline.username" readonly disabled placeholder="请输入用户名">
               <template #prefix>
                 <NIcon size="18" color="#808695">
                   <PersonOutline />
@@ -107,7 +100,7 @@ const goRegisterPage = () => {
               v-model:value="formInline.passwd"
               type="password"
               show-password-on="click"
-              placeholder="请输入密码"
+              placeholder="请输入新密码"
             >
               <template #prefix>
                 <NIcon size="18" color="#808695">
@@ -116,29 +109,11 @@ const goRegisterPage = () => {
               </template>
             </NInput>
           </NFormItem>
-          <!-- <NFormItem class="default-color">
-            <div class="flex justify-between">
-              <div class="flex-initial">
-                <NCheckbox v-model:checked="autoLogin">
-                  自动登录
-                </NCheckbox>
-              </div>
-              <div class="flex-initial order-last">
-                <a href="javascript:">忘记密码</a>
-              </div>
-            </div>
-          </NFormItem> -->
+
           <NFormItem>
             <NButton type="primary" size="large" :loading="loading" block @click="handleSubmit">
-              登录
+              修改
             </NButton>
-          </NFormItem>
-          <NFormItem class="default-color">
-            <div class="flex view-account-other">
-              <div class="flex-initial" style="margin-left: auto">
-                <a href="javascript:" @click="goRegisterPage">注册账号</a>
-              </div>
-            </div>
           </NFormItem>
         </NForm>
       </div>

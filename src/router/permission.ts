@@ -1,15 +1,17 @@
 import type { Router } from 'vue-router'
-// import { useUserStoreWithout } from '@/store/modules/user'
+import Cookies from 'js-cookie'
+import { useUserStoreWithout } from '@/store/modules/user'
 
 export function setupPageGuard(router: Router) {
   router.beforeEach(async (to, from, next) => {
-    // const authStore = useUserStoreWithout()
-    // if (!authStore.logined) {
-    //
-    // }
-    // else {
-    //   next()
-    // }
+    const authStore = useUserStoreWithout()
+    const user_id = Cookies.get('user_id')
+
+    if (user_id)
+      authStore.updateUserInfo({ name: user_id })
+
+    // await router.replace('/login')
+
     next()
   })
 }

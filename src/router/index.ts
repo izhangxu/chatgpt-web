@@ -29,11 +29,15 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/register/index.vue'),
   },
   {
+    path: '/modify/pwd',
+    name: 'modifyPwd',
+    component: () => import('@/views/modifyPwd/index.vue'),
+  },
+  {
     path: '/404',
     name: '404',
     component: () => import('@/views/exception/404/index.vue'),
   },
-
   {
     path: '/500',
     name: '500',

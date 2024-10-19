@@ -3,16 +3,17 @@ import { computed } from 'vue'
 import { NButton, NLayoutSider } from 'naive-ui'
 import List from './List.vue'
 import Footer from './Footer.vue'
-import { useAppStore, useChatStore } from '@/store'
-import { t } from '@/locales'
+import { useAppStore, useChatStore, useUserStore } from '@/store'
 
 const appStore = useAppStore()
 const chatStore = useChatStore()
+const userStore = useUserStore()
 
 const collapsed: any = computed(() => appStore.siderCollapsed)
 
-function handleAdd() {
-  chatStore.addHistory({ title: t('chat.newChatTitle'), uuid: Date.now(), isEdit: false })
+async function handleAdd() {
+  const user_id = userStore.userInfo.name
+  await chatStore.addHistory({ user_id })
 }
 
 function handleUpdateCollapsed() {

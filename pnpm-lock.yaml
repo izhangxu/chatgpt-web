@@ -20,6 +20,9 @@ dependencies:
   html-to-image:
     specifier: ^1.11.11
     version: 1.11.11
+  js-cookie:
+    specifier: ^3.0.5
+    version: 3.0.5
   katex:
     specifier: ^0.16.4
     version: 0.16.11
