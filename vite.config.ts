@@ -1,9 +1,10 @@
-import { resolve } from 'path'
 import type { PluginOption } from 'vite'
 import { defineConfig, loadEnv } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { VitePWA } from 'vite-plugin-pwa'
 import { viteMockServe } from 'vite-plugin-mock'
+
+const path = require('path')
 
 function setupPlugins(env: ImportMetaEnv): PluginOption[] {
   return [
@@ -32,7 +33,7 @@ export default defineConfig((env) => {
   return {
     resolve: {
       alias: {
-        '@': resolve(process.cwd(), 'src'),
+        '@': path.resolve(process.cwd(), 'src'),
       },
     },
     plugins: setupPlugins(viteEnv),
