@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { getLocalState, setLocalState } from './helper'
+import { defaultState, getLocalState, setLocalState } from './helper'
 import { router } from '@/router'
 import { getSessionList, sessionChange, sessionCreate, sessionDelete, sessionRename } from '@/api'
 import { t } from '@/locales'
@@ -144,7 +144,7 @@ export const useChatStore = defineStore('chat-store', {
                 text: right,
                 error: false,
               }, {
-                inversion: true,
+                inversion: false,
                 text: left,
                 error: false,
               }])
@@ -250,6 +250,11 @@ export const useChatStore = defineStore('chat-store', {
         this.chat[chatIndex].data.splice(index, 1)
         this.recordState()
       }
+    },
+
+    clearHistory() {
+      this.$state = { ...defaultState() }
+      this.recordState()
     },
 
     async reloadRoute(uuid?: number) {

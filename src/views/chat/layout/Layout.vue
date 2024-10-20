@@ -1,5 +1,5 @@
 <script setup lang='ts'>
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { NLayout, NLayoutContent } from 'naive-ui'
 import { useRouter } from 'vue-router'
 import Sider from './sider/index.vue'
@@ -22,6 +22,10 @@ const getContainerClass = computed(() => {
     'h-full',
     { 'pl-[260px]': !collapsed.value },
   ]
+})
+
+onMounted(() => {
+  chatStore.clearHistory()
 })
 </script>
 

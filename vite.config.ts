@@ -1,4 +1,4 @@
-import path from 'path'
+import { resolve } from 'path'
 import type { PluginOption } from 'vite'
 import { defineConfig, loadEnv } from 'vite'
 import vue from '@vitejs/plugin-vue'
@@ -32,7 +32,7 @@ export default defineConfig((env) => {
   return {
     resolve: {
       alias: {
-        '@': path.resolve(process.cwd(), 'src'),
+        '@': resolve(process.cwd(), 'src'),
       },
     },
     plugins: setupPlugins(viteEnv),
