@@ -1,4 +1,4 @@
-import type { AxiosProgressEvent, GenericAbortSignal } from 'axios'
+import type { GenericAbortSignal } from 'axios'
 import { post } from '@/utils/request'
 
 export function fetchChatAPI<T = any>(
@@ -28,9 +28,10 @@ export function fetchChatAPIProcess<T = any>(
       image_url?: string
       system?: string
     }
-    onDownloadProgress?: (progressEvent: AxiosProgressEvent) => void },
+  },
 ) {
   const { user_id, uuid, message } = params
+
   return post<T>({
     url: '/chat/completion',
     data: {
@@ -38,7 +39,6 @@ export function fetchChatAPIProcess<T = any>(
       session_id: uuid,
       message,
     },
-    onDownloadProgress: params.onDownloadProgress,
   })
 }
 

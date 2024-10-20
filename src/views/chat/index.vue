@@ -14,8 +14,6 @@ import { useChatStore, useUserStore } from '@/store'
 import { fetchChatAPIProcess } from '@/api'
 import { t } from '@/locales'
 
-const controller = new AbortController()
-
 const message = useMessage()
 const route = useRoute()
 const dialog = useDialog()
@@ -34,6 +32,7 @@ const imageUrl = ref<string>('')
 const loading = ref<boolean>(false)
 const inputRef = ref<Ref | null>(null)
 const lastText = ref<string>('')
+const sse = ref<any>()
 
 const fileList = ref<UploadFileInfo[]>([])
 
@@ -53,7 +52,8 @@ class RetriableError extends Error { }
 class FatalError extends Error { }
 
 async function initSSE() {
-  console.log(6522)
+  const controller = new AbortController()
+
   await fetchEventSource('http://111.61.30.152:80/chat/stream', {
     method: 'GET',
     signal: controller.signal,
@@ -101,6 +101,7 @@ async function initSSE() {
             loading: false,
           },
         )
+        controller.abort()
       }
     },
     onclose() {
@@ -108,15 +109,17 @@ async function initSSE() {
       throw new RetriableError()
     },
     onerror(err) {
-      if (err instanceof FatalError) {
+      if (err instanceof FatalError)
         throw err // rethrow to stop the operation
-      }
-      else {
+
+      else
+        return 3000
       // do nothing to automatically retry. You can also
       // return a specific retry interval here.
-      }
     },
   })
+
+  return controller
 }
 
 async function onConversation() {
@@ -130,6 +133,19 @@ async function onConversation() {
   if (!message || message.trim() === '')
     return
 
+  // 图片参数
+  if (image_url) {
+    addChat(
+      uuid,
+      {
+        dateTime: new Date().toLocaleString(),
+        inversion: true,
+        text: image_url,
+        error: false,
+      },
+    )
+  }
+  // 文字参数
   addChat(
     uuid,
     {
@@ -139,7 +155,6 @@ async function onConversation() {
       error: false,
     },
   )
-  scrollToBottom()
 
   loading.value = true
   prompt.value = ''
@@ -147,39 +162,40 @@ async function onConversation() {
   sysText.value = ''
   fileList.value = []
 
-  addChat(
-    uuid,
-    {
-      dateTime: new Date().toLocaleString(),
-      text: t('chat.thinking'),
-      inversion: false,
-      loading: true,
-      error: false,
-    },
-  )
-  scrollToBottom()
-
   try {
     lastText.value = ''
     const user_id = userStore.userInfo.name
 
-    const fetchChatAPIOnce = async () => {
-      await fetchChatAPIProcess<any>({
-        user_id,
-        uuid,
-        message: {
-          text: message,
-          image_url,
-          system,
-        },
-        onDownloadProgress: () => {
-          scrollToBottomIfAtBottom()
-        },
-      })
-      updateChatSome(uuid, dataSources.value.length - 1, { loading: false })
-    }
+    await fetchChatAPIProcess<any>({
+      user_id,
+      uuid,
+      message: {
+        text: message,
+        image_url,
+        system,
+      },
+    })
+      .then((res: any) => {
+        if (res.status === 'success') {
+          // 思考中
+          addChat(
+            uuid,
+            {
+              dateTime: new Date().toLocaleString(),
+              text: t('chat.thinking'),
+              inversion: false,
+              loading: true,
+              error: false,
+            },
+          )
+          // 建立连接，改为动态建立
+          sse.value = initSSE()
 
-    await fetchChatAPIOnce()
+          scrollToBottom()
+        }
+      })
+
+    updateChatSome(uuid, dataSources.value.length - 1, { loading: false })
   }
   catch (error: any) {
     const errorMessage = error?.message ?? t('common.wrong')
@@ -312,11 +328,10 @@ onBeforeRouteUpdate(() => {
 
 onMounted(async () => {
   await init()
-  await initSSE()
 })
 
 onUnmounted(() => {
-  controller.abort()
+  sse.value?.abort?.()
 })
 </script>
 
