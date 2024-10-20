@@ -16,7 +16,7 @@ export const useChatStore = defineStore('chat-store', {
     },
 
     getChatByUuid(state: Chat.ChatState) {
-      return (uuid?: number) => {
+      return (uuid?: string) => {
         if (uuid)
           return state.chat.find(item => item.uuid === uuid)?.data ?? []
         return state.chat.find(item => item.uuid === state.active)?.data ?? []
@@ -121,7 +121,7 @@ export const useChatStore = defineStore('chat-store', {
       }
     },
 
-    async setActive(uuid: number) {
+    async setActive(uuid: string) {
       this.active = uuid
       return await this.reloadRoute(uuid)
     },
@@ -165,8 +165,8 @@ export const useChatStore = defineStore('chat-store', {
       }
     },
 
-    getChatByUuidAndIndex(uuid: number, index: number) {
-      if (!uuid || uuid === 0) {
+    getChatByUuidAndIndex(uuid: string, index: number) {
+      if (!uuid || uuid === '0') {
         if (this.chat.length)
           return this.chat[0].data[index]
         return null
@@ -177,11 +177,11 @@ export const useChatStore = defineStore('chat-store', {
       return null
     },
 
-    addChatByUuid(uuid: number, chat: Chat.Chat) {
-      if (!uuid || uuid === 0) {
+    addChatByUuid(uuid: string, chat: Chat.Chat) {
+      if (!uuid || uuid === '0') {
         if (this.history.length === 0) {
           // 未添加对话
-          const uuid = Date.now()
+          const uuid = `${Date.now()}`
           this.history.push({ uuid, title: chat.text, isEdit: false })
           this.chat.push({ uuid, data: [chat] })
           this.active = uuid
@@ -204,8 +204,8 @@ export const useChatStore = defineStore('chat-store', {
       }
     },
 
-    updateChatByUuid(uuid: number, index: number, chat: Chat.Chat) {
-      if (!uuid || uuid === 0) {
+    updateChatByUuid(uuid: string, index: number, chat: Chat.Chat) {
+      if (!uuid || uuid === '0') {
         if (this.chat.length) {
           this.chat[0].data[index] = chat
           this.recordState()
@@ -214,14 +214,16 @@ export const useChatStore = defineStore('chat-store', {
       }
 
       const chatIndex = this.chat.findIndex(item => item.uuid === uuid)
+
+      console.log('chatIndex', chatIndex, chat)
       if (chatIndex !== -1) {
         this.chat[chatIndex].data[index] = chat
         this.recordState()
       }
     },
 
-    updateChatSomeByUuid(uuid: number, index: number, chat: Partial<Chat.Chat>) {
-      if (!uuid || uuid === 0) {
+    updateChatSomeByUuid(uuid: string, index: number, chat: Partial<Chat.Chat>) {
+      if (!uuid || uuid === '0') {
         if (this.chat.length) {
           this.chat[0].data[index] = { ...this.chat[0].data[index], ...chat }
           this.recordState()
@@ -236,8 +238,8 @@ export const useChatStore = defineStore('chat-store', {
       }
     },
 
-    deleteChatByUuid(uuid: number, index: number) {
-      if (!uuid || uuid === 0) {
+    deleteChatByUuid(uuid: string, index: number) {
+      if (!uuid || uuid === '0') {
         if (this.chat.length) {
           this.chat[0].data.splice(index, 1)
           this.recordState()
@@ -257,7 +259,7 @@ export const useChatStore = defineStore('chat-store', {
       this.recordState()
     },
 
-    async reloadRoute(uuid?: number) {
+    async reloadRoute(uuid?: string) {
       this.recordState()
       await router.push({ name: 'Chat', params: { uuid } })
     },

@@ -118,6 +118,11 @@ function escapeBrackets(text: string) {
   })
 }
 
+function isImage(ext: any) {
+  const reg = /(\jpg|\jpeg|\png|\gif|\webp)$/i
+  return reg.test(ext)
+}
+
 onMounted(() => {
   addCopyEvents()
 })
@@ -136,7 +141,10 @@ onUnmounted(() => {
     <div ref="textRef" class="leading-relaxed break-words">
       <div>
         <div v-if="!asRawText" class="markdown-body" :class="{ 'markdown-body-generate': loading }" v-html="text" />
-        <div v-else class="whitespace-pre-wrap" v-text="text" />
+        <div v-else class="whitespace-pre-wrap">
+          <img v-if="isImage(text)" width="300" :src="text" alt="">
+          <span v-else v-text="text" />
+        </div>
       </div>
     </div>
   </div>

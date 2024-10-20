@@ -1,7 +1,7 @@
 <script setup lang='ts'>
 import type { Ref } from 'vue'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
-import { useRoute } from 'vue-router'
+import { onBeforeRouteUpdate, useRoute } from 'vue-router'
 import { NAutoComplete, NButton, NIcon, NInput, NUpload, NUploadFileList, NUploadTrigger, useDialog, useMessage } from 'naive-ui'
 import type { UploadFileInfo } from 'naive-ui'
 import { CloudUploadOutline } from '@vicons/ionicons5'
@@ -14,6 +14,8 @@ import { useChatStore, useUserStore } from '@/store'
 import { fetchChatAPIProcess } from '@/api'
 import { t } from '@/locales'
 
+const controller = new AbortController()
+
 const message = useMessage()
 const route = useRoute()
 const dialog = useDialog()
@@ -25,7 +27,7 @@ const { addChat, updateChat, updateChatSome, getChatByUuidAndIndex } = useChat()
 const { scrollRef, scrollToBottom, scrollToBottomIfAtBottom } = useScroll()
 const { uuid }: any = route.params as { uuid: string }
 
-const dataSources = computed(() => chatStore.getChatByUuid(+uuid))
+const dataSources = computed(() => chatStore.getChatByUuid(uuid))
 const sysText = ref<string>('')
 const prompt = ref<string>('')
 const imageUrl = ref<string>('')
@@ -40,10 +42,8 @@ const fileList = ref<UploadFileInfo[]>([])
 // 未知原因刷新页面，loading 状态不会重置，手动重置
 dataSources.value.forEach((item: any, index: number) => {
   if (item.loading)
-    updateChatSome(+uuid, index, { loading: false })
+    updateChatSome(uuid, index, { loading: false })
 })
-
-console.log(dataSources.value)
 
 function handleSubmit() {
   onConversation()
@@ -52,57 +52,77 @@ function handleSubmit() {
 class RetriableError extends Error { }
 class FatalError extends Error { }
 
-fetchEventSource('http://111.61.30.152:80/chat/stream', {
-  method: 'GET',
-  async onopen(response) {
-    if (response.ok && response.headers.get('content-type') === EventStreamContentType) {
+async function initSSE() {
+  console.log(6522)
+  await fetchEventSource('http://111.61.30.152:80/chat/stream', {
+    method: 'GET',
+    signal: controller.signal,
+    async onopen(response) {
+      if (response.ok && response.headers.get('content-type') === EventStreamContentType) {
       // everything's good
-    }
-    else if (response.status >= 400 && response.status < 500 && response.status !== 429) {
+      }
+      else if (response.status >= 400 && response.status < 500 && response.status !== 429) {
       // client-side errors are usually non-retriable:
-      throw new FatalError()
-    }
-    else {
-      throw new RetriableError()
-    }
-  },
-  onmessage(msg) {
+        throw new FatalError()
+      }
+      else {
+        throw new RetriableError()
+      }
+    },
+    onmessage(msg) {
     // if the server emits an error message, throw an exception
     // so it gets handled by the onerror callback below:
-    if (msg.event === 'FatalError')
-      throw new FatalError(msg.data)
+      if (msg.event === 'FatalError')
+        throw new FatalError(msg.data)
 
-    lastText.value += msg
+      const { data } = msg
+      const { response } = JSON.parse(data)
+      lastText.value = response
 
-    updateChat(
-      +uuid,
-      dataSources.value.length - 1,
-      {
-        dateTime: new Date().toLocaleString(),
-        text: lastText.value,
-        error: false,
-        inversion: false,
-        loading: true,
-      },
-    )
-  },
-  onclose() {
+      if (response !== 'done') {
+        updateChat(
+          uuid,
+          dataSources.value.length - 1,
+          {
+            dateTime: new Date().toLocaleString(),
+            text: lastText.value,
+            error: false,
+            inversion: false,
+            loading: true,
+          },
+        )
+      }
+      else {
+        updateChatSome(
+          uuid,
+          dataSources.value.length - 1,
+          {
+            error: false,
+            loading: false,
+          },
+        )
+      }
+    },
+    onclose() {
     // if the server closes the connection unexpectedly, retry:
-    throw new RetriableError()
-  },
-  onerror(err) {
-    if (err instanceof FatalError) {
-      throw err // rethrow to stop the operation
-    }
-    else {
+      throw new RetriableError()
+    },
+    onerror(err) {
+      if (err instanceof FatalError) {
+        throw err // rethrow to stop the operation
+      }
+      else {
       // do nothing to automatically retry. You can also
       // return a specific retry interval here.
-    }
-  },
-})
+      }
+    },
+  })
+}
 
 async function onConversation() {
   const message = prompt.value
+  const image_url = imageUrl.value
+  const system = sysText.value
 
   if (loading.value)
     return
@@ -111,7 +131,7 @@ async function onConversation() {
     return
 
   addChat(
-    +uuid,
+    uuid,
     {
       dateTime: new Date().toLocaleString(),
       inversion: true,
@@ -123,9 +143,12 @@ async function onConversation() {
 
   loading.value = true
   prompt.value = ''
+  imageUrl.value = ''
+  sysText.value = ''
+  fileList.value = []
 
   addChat(
-    +uuid,
+    uuid,
     {
       dateTime: new Date().toLocaleString(),
       text: t('chat.thinking'),
@@ -139,34 +162,21 @@ async function onConversation() {
   try {
     lastText.value = ''
     const user_id = userStore.userInfo.name
+
     const fetchChatAPIOnce = async () => {
       await fetchChatAPIProcess<any>({
         user_id,
         uuid,
         message: {
           text: message,
-          image_url: imageUrl.value,
-          system: sysText.value,
+          image_url,
+          system,
         },
-        onDownloadProgress: ({ event }) => {
-          const xhr = event.target
-          const { responseText } = xhr
-          // Always process the final line
-          const lastIndex = responseText.lastIndexOf('\n', responseText.length - 2)
-          let chunk = responseText
-          if (lastIndex !== -1)
-            chunk = responseText.substring(lastIndex)
-          try {
-            const { data } = JSON.parse(chunk)
-            console.log(data)
-
-            scrollToBottomIfAtBottom()
-          }
-          catch (error) {
-          }
+        onDownloadProgress: () => {
+          scrollToBottomIfAtBottom()
         },
       })
-      updateChatSome(+uuid, dataSources.value.length - 1, { loading: false })
+      updateChatSome(uuid, dataSources.value.length - 1, { loading: false })
     }
 
     await fetchChatAPIOnce()
@@ -174,23 +184,23 @@ async function onConversation() {
   catch (error: any) {
     const errorMessage = error?.message ?? t('common.wrong')
 
-    if (error.message === 'canceled') {
-      updateChatSome(
-        +uuid,
-        dataSources.value.length - 1,
-        {
-          loading: false,
-        },
-      )
-      scrollToBottomIfAtBottom()
-      return
-    }
+    // if (error.message === 'canceled') {
+    //   updateChatSome(
+    //     uuid,
+    //     dataSources.value.length - 1,
+    //     {
+    //       loading: false,
+    //     },
+    //   )
+    //   scrollToBottomIfAtBottom()
+    //   return
+    // }
 
-    const currentChat = getChatByUuidAndIndex(+uuid, dataSources.value.length - 1)
+    const currentChat = getChatByUuidAndIndex(uuid, dataSources.value.length - 1)
 
     if (currentChat?.text && currentChat.text !== '') {
       updateChatSome(
-        +uuid,
+        uuid,
         dataSources.value.length - 1,
         {
           text: `${currentChat.text}\n[${errorMessage}]`,
@@ -202,7 +212,7 @@ async function onConversation() {
     }
 
     updateChat(
-      +uuid,
+      uuid,
       dataSources.value.length - 1,
       {
         dateTime: new Date().toLocaleString(),
@@ -229,7 +239,7 @@ function handleDelete(index: number) {
     positiveText: t('common.yes'),
     negativeText: t('common.no'),
     onPositiveClick: () => {
-      chatStore.deleteChatByUuid(+uuid, index)
+      chatStore.deleteChatByUuid(uuid, index)
     },
   })
 }
@@ -288,16 +298,25 @@ const handleUploadChange = (data: { fileList: UploadFileInfo[]; event: any }) =>
   }
 }
 
-onMounted(async () => {
+async function init() {
   await chatStore.getChatList({ uuid, user_id: userStore.userInfo.name })
 
   scrollToBottom()
   if (inputRef.value)
     inputRef.value?.focus()
+}
+
+onBeforeRouteUpdate(() => {
+  init()
+})
+
+onMounted(async () => {
+  await init()
+  await initSSE()
 })
 
 onUnmounted(() => {
-
+  controller.abort()
 })
 </script>
 

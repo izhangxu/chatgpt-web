@@ -1,16 +1,22 @@
 <script setup lang='ts'>
 import { onMounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import { NInput, NPopconfirm, NScrollbar } from 'naive-ui'
 import { SvgIcon } from '@/components/common'
 import { useChatStore, useUserStore } from '@/store'
 import { debounce } from '@/utils/functions/debounce'
 
+const route = useRoute()
 const userStore = useUserStore()
 const chatStore = useChatStore()
 const dataSources = ref<any>([])
+const { uuid }: any = route.params as { uuid: string }
 
-onMounted(() => {
-  getSessionList()
+onMounted(async () => {
+  await getSessionList()
+
+  if (uuid !== '0')
+    handleSelect({ uuid })
 })
 
 async function getSessionList() {
@@ -21,7 +27,9 @@ async function getSessionList() {
 }
 
 // 选中聊天
-async function handleSelect({ uuid }: Chat.History) {
+async function handleSelect({ uuid }: Partial<Chat.History>) {
+  if (!uuid)
+    return
   if (isActive(uuid))
     return
 
@@ -64,7 +72,7 @@ async function handleEnter({ uuid, title }: Chat.History, event: KeyboardEvent) 
   }
 }
 
-function isActive(uuid: number) {
+function isActive(uuid: string) {
   return chatStore.active === uuid
 }
 </script>
