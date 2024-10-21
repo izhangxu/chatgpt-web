@@ -16,7 +16,6 @@ export function useChat() {
   }
 
   const updateChat = (uuid: string, index: number, chat: Chat.Chat) => {
-    console.log(222, uuid)
     chatStore.updateChatByUuid(uuid, index, chat)
   }
 
