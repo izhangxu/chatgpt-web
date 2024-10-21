@@ -178,6 +178,7 @@ async function onConversation(params?: any) {
         text: message,
         image_url,
         system,
+        ...(params?.is_regenerate ? { is_regenerate: params.is_regenerate } : {}),
       },
     })
       .then((res: any) => {
@@ -259,6 +260,7 @@ function handleRegenerate(index: number) {
       params.image_url = text
     }
   }
+  params.is_regenerate = true
 
   onConversation(params)
 }

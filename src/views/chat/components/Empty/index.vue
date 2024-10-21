@@ -9,7 +9,7 @@
       <div class="flex items-center justify-between">
         <img width="135" src="@/assets/bjtu-logo.svg" alt="">
         <div class="ml-6">
-          <h4 class="text-5xl font-bold mb-6">
+          <h4 class="text-5xl font-bold mb-6 text-black">
             你好，我是天佑大模型
           </h4>
           <p class="text-gray-500 text-2xl">
@@ -19,7 +19,7 @@
       </div>
       <div class="flex items-center justify-center mt-4" style="width: 660px;">
         <div class="flex items-center justify-center flex-row border border-gray-150 rounded-xl p-3 mr-2">
-          <h5 class="text-2xl font-bold mr-4">
+          <h5 class="text-2xl font-bold mr-4 text-black">
             缺陷检测
           </h5>
           <p class="text-gray-500 text-xl">
@@ -27,7 +27,7 @@
           </p>
         </div>
         <div class="flex items-center justify-center flex-row border border-gray-150 rounded-xl p-3 mr-2">
-          <h5 class="text-2xl font-bold mr-4">
+          <h5 class="text-2xl font-bold mr-4 text-black">
             运维建议
           </h5>
           <p class="text-gray-500 text-xl">
