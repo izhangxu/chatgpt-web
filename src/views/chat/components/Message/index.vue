@@ -1,7 +1,12 @@
 <script setup lang='ts'>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
+import { NDropdown, useMessage } from 'naive-ui'
 import AvatarComponent from './Avatar.vue'
 import TextComponent from './Text.vue'
+import { SvgIcon } from '@/components/common'
+import { useIconRender } from '@/hooks/useIconRender'
+import { t } from '@/locales'
+import { copyToClip } from '@/utils/copy'
 
 interface Props {
   dateTime?: string
@@ -9,20 +14,21 @@ interface Props {
   inversion?: boolean
   error?: boolean
   loading?: boolean
+  isLast?: boolean
 }
 
-// interface Emit {
-//   (ev: 'regenerate'): void
-//   (ev: 'delete'): void
-// }
+interface Emit {
+  (ev: 'regenerate'): void
+  (ev: 'delete'): void
+}
 
 const props = defineProps<Props>()
 
-// const emit = defineEmits<Emit>()
+const emit = defineEmits<Emit>()
 
-// const { iconRender } = useIconRender()
+const { iconRender } = useIconRender()
 
-// const message = useMessage()
+const message = useMessage()
 
 const textRef = ref<HTMLElement>()
 
@@ -30,39 +36,37 @@ const asRawText = ref(props.inversion)
 
 const messageRef = ref<HTMLElement>()
 
-// const options = computed(() => {
-//   const common: any = [
-//     // {
-//     //   label: t('chat.copy'),
-//     //   key: 'copyText',
-//     //   icon: iconRender({ icon: 'ri:file-copy-2-line' }),
-//     // },
-//   ]
+const options = computed(() => {
+  const common: any = [
+    {
+      label: t('chat.copy'),
+      key: 'copyText',
+      icon: iconRender({ icon: 'ri:file-copy-2-line' }),
+    },
+  ]
 
-//   return common
-// })
+  return common
+})
 
-// function handleSelect(key: 'copyText' | 'delete' | 'toggleRenderType') {
-//   switch (key) {
-//     case 'copyText':
-//       handleCopy()
-//   }
-// }
+function handleSelect(key: 'copyText' | 'delete') {
+  if (key === 'copyText')
+    handleCopy()
+}
 
-// function handleRegenerate() {
-//   messageRef.value?.scrollIntoView()
-//   emit('regenerate')
-// }
+function handleRegenerate() {
+  messageRef.value?.scrollIntoView()
+  emit('regenerate')
+}
 
-// async function handleCopy() {
-//   try {
-//     await copyToClip(props.text || '')
-//     message.success(t('chat.copied'))
-//   }
-//   catch {
-//     message.error(t('chat.copyFailed'))
-//   }
-// }
+async function handleCopy() {
+  try {
+    await copyToClip(props.text || '')
+    message.success(t('chat.copied'))
+  }
+  catch {
+    message.error(t('chat.copyFailed'))
+  }
+}
 </script>
 
 <template>
@@ -94,14 +98,15 @@ const messageRef = ref<HTMLElement>()
           :as-raw-text="asRawText"
         />
         <div class="flex flex-col">
-          <!-- <button
-            v-if="!inversion"
+          <button
+            v-if="!inversion && isLast"
             class="mb-2 transition text-neutral-300 hover:text-neutral-800 dark:hover:text-neutral-300"
             @click="handleRegenerate"
           >
             <SvgIcon icon="ri:restart-line" />
-          </button> -->
-          <!-- <NDropdown
+          </button>
+          <NDropdown
+            v-if="!inversion"
             trigger="hover"
             :placement="!inversion ? 'right' : 'left'"
             :options="options"
@@ -110,7 +115,7 @@ const messageRef = ref<HTMLElement>()
             <button class="transition text-neutral-300 hover:text-neutral-800 dark:hover:text-neutral-200">
               <SvgIcon icon="ri:more-2-fill" />
             </button>
-          </NDropdown> -->
+          </NDropdown>
         </div>
       </div>
     </div>

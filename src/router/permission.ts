@@ -6,11 +6,9 @@ export function setupPageGuard(router: Router) {
   router.beforeEach(async (to, from, next) => {
     const authStore = useUserStoreWithout()
     const user_id = Cookies.get('user_id')
-
+    console.log(user_id)
     if (user_id)
       authStore.updateUserInfo({ name: user_id })
-
-    // await router.replace('/login')
 
     next()
   })

@@ -6,6 +6,11 @@ declare namespace Chat {
 		error?: boolean
 		inversion: boolean
 		loading?: boolean
+		requestMessage?: { 
+			text: string
+			image_url?: string
+			system?: string
+		}
 	}
 
 	interface History {

@@ -13,6 +13,7 @@ import { SvgIcon } from '@/components/common'
 import { useChatStore, useUserStore } from '@/store'
 import { fetchChatAPIProcess } from '@/api'
 import { t } from '@/locales'
+import { isImage } from '@/utils/functions'
 
 const message = useMessage()
 const route = useRoute()
@@ -122,10 +123,12 @@ async function initSSE() {
   return controller
 }
 
-async function onConversation() {
-  const message = prompt.value
-  const image_url = imageUrl.value
-  const system = sysText.value
+async function onConversation(params?: any) {
+  const hasParams = !!params
+
+  const message = params?.text || prompt.value
+  const image_url = params?.image_url || imageUrl.value
+  const system = !hasParams ? sysText.value : ''
 
   if (loading.value)
     return
@@ -133,28 +136,30 @@ async function onConversation() {
   if (!message || message.trim() === '')
     return
 
+  if (!hasParams) {
   // 图片参数
-  if (image_url) {
+    if (image_url) {
+      addChat(
+        uuid,
+        {
+          dateTime: new Date().toLocaleString(),
+          inversion: true,
+          text: image_url,
+          error: false,
+        },
+      )
+    }
+    // 文字参数
     addChat(
       uuid,
       {
         dateTime: new Date().toLocaleString(),
         inversion: true,
-        text: image_url,
+        text: message,
         error: false,
       },
     )
   }
-  // 文字参数
-  addChat(
-    uuid,
-    {
-      dateTime: new Date().toLocaleString(),
-      inversion: true,
-      text: message,
-      error: false,
-    },
-  )
 
   loading.value = true
   prompt.value = ''
@@ -178,16 +183,21 @@ async function onConversation() {
       .then((res: any) => {
         if (res.status === 'success') {
           // 思考中
-          addChat(
-            uuid,
-            {
-              dateTime: new Date().toLocaleString(),
-              text: t('chat.thinking'),
-              inversion: false,
-              loading: true,
-              error: false,
-            },
-          )
+          if (!hasParams) {
+            addChat(
+              uuid,
+              {
+                dateTime: new Date().toLocaleString(),
+                text: t('chat.thinking'),
+                inversion: false,
+                loading: true,
+                error: false,
+              },
+            )
+          }
+          else {
+            updateChatSome(uuid, dataSources.value.length - 1, { loading: true, text: t('chat.thinking') })
+          }
           // 建立连接，改为动态建立
           sse.value = initSSE()
 
@@ -227,22 +237,30 @@ async function onConversation() {
       return
     }
 
-    updateChat(
-      uuid,
-      dataSources.value.length - 1,
-      {
-        dateTime: new Date().toLocaleString(),
-        text: errorMessage,
-        error: true,
-        inversion: false,
-        loading: false,
-      },
-    )
     scrollToBottomIfAtBottom()
   }
   finally {
     loading.value = false
   }
+}
+
+function handleRegenerate(index: number) {
+  const params: any = {}
+  const prevChat = getChatByUuidAndIndex(uuid, index - 1)
+  if (!prevChat)
+    return
+  params.text = prevChat.text
+
+  const prevChatImage = getChatByUuidAndIndex(uuid, index - 2)
+  if (prevChatImage) {
+    const { inversion, text } = prevChatImage
+    if (inversion && isImage(text)) {
+      // 是图像
+      params.image_url = text
+    }
+  }
+
+  onConversation(params)
 }
 
 function handleDelete(index: number) {
@@ -358,6 +376,8 @@ onUnmounted(() => {
                   :inversion="item.inversion"
                   :error="item.error"
                   :loading="item.loading"
+                  :is-last="index === dataSources.length - 1"
+                  @regenerate="handleRegenerate(index)"
                   @delete="handleDelete(index)"
                 />
                 <div class="sticky bottom-0 left-0 flex justify-center">

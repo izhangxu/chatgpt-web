@@ -7,6 +7,7 @@ import MdMermaid from 'mermaid-it-markdown'
 import hljs from 'highlight.js'
 import { t } from '@/locales'
 import { copyToClip } from '@/utils/copy'
+import { isImage } from '@/utils/functions'
 
 interface Props {
   error?: boolean
@@ -116,11 +117,6 @@ function escapeBrackets(text: string) {
       return `$${roundBracket}$`
     return match
   })
-}
-
-function isImage(ext: any) {
-  const reg = /(\jpg|\jpeg|\png|\gif|\webp)$/i
-  return reg.test(ext)
 }
 
 onMounted(() => {
