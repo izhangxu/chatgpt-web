@@ -358,9 +358,9 @@ onUnmounted(() => {
     <main class="flex-1 overflow-hidden">
       <div id="scrollRef" ref="scrollRef" class="h-full overflow-hidden overflow-y-auto">
         <div
-          class="w-full max-w-screen-xl m-auto dark:bg-[#101014] p-4"
+          class="w-full h-full max-w-screen-xl m-auto dark:bg-[#101014] p-4"
         >
-          <div id="image-wrapper" class="relative">
+          <div id="image-wrapper" class="h-full relative">
             <template v-if="!dataSources.length">
               <Empty />
               <!-- <div class="flex items-center justify-center mt-4 text-center text-neutral-300">
