@@ -72,12 +72,12 @@ async function handleCopy() {
 <template>
   <div
     ref="messageRef"
-    class="flex w-full mb-6 overflow-hidden"
+    class="flex items-center w-full mb-6 overflow-hidden"
     :class="[{ 'flex-row-reverse': inversion }]"
   >
     <div
       class="flex items-center justify-center flex-shrink-0 h-8 overflow-hidden rounded-full basis-8"
-      :class="[inversion ? 'ml-2' : 'mr-7']"
+      :class="[inversion ? 'ml-3' : 'mr-5']"
     >
       <AvatarComponent :image="inversion" />
     </div>

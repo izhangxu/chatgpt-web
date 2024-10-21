@@ -279,7 +279,7 @@ function handleDelete(index: number) {
 }
 
 function handleEnter(event: KeyboardEvent) {
-  if (event.key === 'Enter' && event.ctrlKey) {
+  if (event.key === 'Enter') {
     event.preventDefault()
     handleSubmit()
   }
